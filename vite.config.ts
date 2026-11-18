@@ -8,11 +8,37 @@
 // hosting already compresses at the edge.
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { loadEnv } from "vite";
+
+const modeOptionIndex = process.argv.indexOf("--mode");
+const mode =
+  modeOptionIndex >= 0
+    ? process.argv[modeOptionIndex + 1]
+    : process.argv.includes("build")
+      ? "production"
+      : "development";
+const env = loadEnv(mode, process.cwd(), "");
+
+for (const [key, value] of Object.entries(env)) {
+  if (process.env[key] === undefined) {
+    process.env[key] = value;
+  }
+}
 
 export default defineConfig({
+  vite: {
+    define: {
+      "process.env.SUPABASE_URL": JSON.stringify(process.env.SUPABASE_URL),
+      "process.env.SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+        process.env.SUPABASE_PUBLISHABLE_KEY,
+      ),
+    },
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
   },
 });
+console.log("SUPABASE_URL =", process.env.SUPABASE_URL);
+console.log("SUPABASE_PUBLISHABLE_KEY =", process.env.SUPABASE_PUBLISHABLE_KEY?.slice(0, 30));
