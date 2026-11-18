@@ -1,0 +1,13 @@
+# SDS3D
+- [x] Atualizar a privacidade, disponibilizar a edição no admin e renomear Descrição da página.
+- [ ] Design industrial premium e páginas públicas pt-PT.
+- [ ] Catálogo persistente, filtros e páginas de trabalhos com galeria.
+- [ ] Administração com acesso por função, perfil e edição de conteúdos.
+- [ ] Upload de fotografias e referências privadas.
+- [ ] Pedidos de orçamento guardados, estados, notas e CSV.
+- [ ] Verificar publicação, rascunhos, pedidos e experiência móvel.
+- [ ] Notificações por email: dependem de domínio verificado e destinatário real.
+- [x] Corrigir o erro de compilação na administração e verificar o site.
+- [x] Página única com catálogo e categorias; logótipo sem círculo.
+- [x] Logótipo no banner inicial em vez do topo.
+- [x] Efeito de fundo: partículas douradas, douradas maiores, neve (Natal), sem efeito

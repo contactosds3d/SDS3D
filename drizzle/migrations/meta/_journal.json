@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794791263789,
+      "tag": "0000_sds3d_catalogue",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794791285471,
+      "tag": "0001_sds3d_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794794678641,
+      "tag": "0002_category_parent",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794795281767,
+      "tag": "0003_works_price_stock",
+      "breakpoints": true
+    }
+  ]
+}

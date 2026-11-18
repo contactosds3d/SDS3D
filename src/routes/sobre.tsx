@@ -1,0 +1,7 @@
+import {createFileRoute} from '@tanstack/react-router';
+import {useSuspenseQuery} from '@tanstack/react-query';
+import {siteQuery} from '@/features/site-query';
+import {pageHead,imageUrl} from '@/features/content';
+import {SiteLayout,ContactBand} from '@/components/site-layout';
+export const Route=createFileRoute('/sobre')({loader:({context})=>context.queryClient.ensureQueryData(siteQuery),head:()=>pageHead('Sobre a SDS3D','Conhece a SDS3D — um espaço para transformar ideias em formas, com criatividade e precisão.'),component:About});
+function About(){const {data}=useSuspenseQuery(siteQuery);return <SiteLayout><div className="page-heading"><span className="eyebrow">O NOSSO UNIVERSO</span><h1>SDS3D. Um olhar sobre a forma<span className="accent-dot">.</span></h1></div><section className="about-section section"><div className="about-visual"><img src={data.settings['about_image']||imageUrl('example:architecture')} alt="Modelo de arquitetura — imagem de exemplo" width={1024} height={1024}/></div><div className="about-content"><span className="eyebrow">IMAGINAR. CRIAR. DAR FORMA.</span><h2>Entre a ideia<br/>e a realidade.</h2><p className="whitespace-pre-line">{data.settings['about']}</p>{data.settings['about_note']&&<p className="optional">{data.settings['about_note']}</p>}</div></section>{data.settings['about_details']&&<section className="section long-copy whitespace-pre-line">{data.settings['about_details']}</section>}<ContactBand/></SiteLayout>}

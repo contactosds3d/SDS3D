@@ -1,0 +1,1 @@
+CREATE POLICY admin_storage ON storage.objects FOR ALL TO authenticated USING(bucket_id IN ('portfolio','references') AND public.has_role(auth.uid(),'admin')) WITH CHECK(bucket_id IN ('portfolio','references') AND public.has_role(auth.uid(),'admin'));

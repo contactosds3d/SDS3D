@@ -1,0 +1,1 @@
+ALTER TABLE public.works ADD COLUMN IF NOT EXISTS price numeric(10,2); ALTER TABLE public.works ADD COLUMN IF NOT EXISTS stock integer;
