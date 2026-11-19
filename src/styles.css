@@ -1373,6 +1373,8 @@ textarea.field {
 .admin-table {
   width: 100%;
   font-size: 12px;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .admin-table th {
