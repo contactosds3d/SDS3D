@@ -2,8 +2,6 @@ import { createServerFn } from '@tanstack/react-start';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 import { contactSchema } from './validation';
-console.log("ENV", process.env['SUPABASE_URL'])
-console.log("ENV KEY", process.env['SUPABASE_PUBLISHABLE_KEY'])
 export const getPublicSite = createServerFn({ method: 'GET' }).handler(async () => {
   const url = process.env['SUPABASE_URL'];
   const key = process.env['SUPABASE_PUBLISHABLE_KEY'];
@@ -48,13 +46,6 @@ export const getPublicSite = createServerFn({ method: 'GET' }).handler(async () 
       .eq('id', 'main')
       .single(),
   ]);
-
-  console.log('========== SUPABASE ==========');
-  console.log('works:', works.error);
-  console.log('categories:', categories.error);
-  console.log('services:', services.error);
-  console.log('settings:', settings.error);
-  console.log('==============================');
 
   if (works.error || categories.error || services.error || settings.error) {
     throw new Error(

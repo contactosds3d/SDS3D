@@ -40,5 +40,3 @@ export default defineConfig({
     server: { entry: "server" },
   },
 });
-console.log("SUPABASE_URL =", process.env.SUPABASE_URL);
-console.log("SUPABASE_PUBLISHABLE_KEY =", process.env.SUPABASE_PUBLISHABLE_KEY?.slice(0, 30));

@@ -31,6 +31,7 @@ import {
   ArrowUpRight,
   Save,
   Eye,
+  EyeOff,
   Upload,
   X,
 } from "lucide-react";
@@ -535,12 +536,12 @@ export function AdminPanel() {
             <h1>
               {editor
                 ? (editor.id ? "Editar" : "Adicionar") +
-                  " " +
-                  (editor.kind === "works"
-                    ? "peça"
-                    : editor.kind === "categories"
-                      ? "categoria"
-                      : "serviço")
+                " " +
+                (editor.kind === "works"
+                  ? "peça"
+                  : editor.kind === "categories"
+                    ? "categoria"
+                    : "serviço")
                 : visibleItems.find((x) => x[0] === section)?.[1]}
             </h1>
             <p>
@@ -875,12 +876,13 @@ export function AdminPanel() {
                         <th>Estado</th>
                         <th>Categoria</th>
                         <th>Stock</th>
+                        <th className="text-right">Ações</th>
                       </>
                     ) : (
                       <>
                         <th>Estado</th>
                         <th>Ordem</th>
-                        <th>Ações</th>
+                        <th className="text-right">Ações</th>
                       </>
                     )}
                   </tr>
@@ -890,8 +892,8 @@ export function AdminPanel() {
                     ? works
                     : section === "categories"
                       ? categories
-                          .filter((c) => !c.parent_id)
-                          .flatMap((c) => [c, ...categories.filter((x) => x.parent_id === c.id)])
+                        .filter((c) => !c.parent_id)
+                        .flatMap((c) => [c, ...categories.filter((x) => x.parent_id === c.id)])
                       : services)
                     .filter((row) => row.name.toLowerCase().includes(search.toLowerCase()))
                     .map((row) => (
@@ -940,24 +942,80 @@ export function AdminPanel() {
                           </>
                         ) : null}
                         {section !== "works" && <td>{row.position}</td>}
-                        {section !== "works" && <td className="table-actions">
+                        <td className="table-actions">
+
+                          {section === "works" && (() => {
+                            const work = row as Work;
+                            return (
+                              <>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  title={work.published ? "Ocultar" : "Publicar"}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+
+                                    const { error } = await supabase
+                                      .from("works")
+                                      .update({
+                                        published: !work.published,
+                                      })
+                                      .eq("id", row.id);
+
+                                    if (error) {
+                                      toast.error("Erro ao alterar o estado.");
+                                      return;
+                                    }
+
+                                    await changed();
+                                  }}
+                                >
+                                  {work.published ? (
+                                    <Eye className="text-green-500 hover:text-green-700 transition" />
+                                  ) : (
+                                    <EyeOff className="text-gray-400 hover:text-gray-700 transition" />
+                                  )}
+                                </Button>
+
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  title="Duplicar"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    duplicate(work);
+                                  }}
+                                >
+                                  <Copy />
+                                </Button>
+                              </>
+                            );
+                          })()}
                           <Button
                             size="icon"
                             variant="ghost"
-                            aria-label={`Editar ${row.name}`}
-                            onClick={() => open(section as Editor["kind"], row)}
+                            title="Editar"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              open(section as Editor["kind"], row);
+                            }}
                           >
                             <Pencil />
                           </Button>
+
                           <Button
-                            variant="ghost"
                             size="icon"
-                            aria-label={`Eliminar ${row.name}`}
-                            onClick={() => remove(section as Editor["kind"], row.id)}
+                            variant="ghost"
+                            className="text-red-600"
+                            title="Eliminar"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              remove(section as Editor["kind"], row.id);
+                            }}
                           >
                             <Trash2 />
                           </Button>
-                        </td>}
+                        </td>
                       </tr>
                     ))}
                 </tbody>
