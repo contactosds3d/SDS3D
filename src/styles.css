@@ -1386,7 +1386,7 @@ textarea.field {
 }
 
 .admin-table td {
-  padding: 3px 12px;
+  padding: 0px 12px;
   border-top: 1px solid var(--border);
 }
 
@@ -2521,7 +2521,7 @@ textarea.field {
   position: relative;
   aspect-ratio: 1;
   overflow: hidden;
-  background: var(--card);
+  border-radius: 75px;
 }
 
 .ig-tile img {
