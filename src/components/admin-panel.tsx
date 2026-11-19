@@ -935,7 +935,9 @@ export function AdminPanel() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Nome</th>
+                    <th onClick={() => changeSort("name")} style={{ cursor: "pointer" }}>
+                      Nome {sortBy === "name" && (sortAsc ? "▲" : "▼")}
+                    </th>
                     {section === "works" ? (
                       <>
                         <th onClick={() => changeSort("published")} style={{ cursor: "pointer" }}>
