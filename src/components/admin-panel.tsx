@@ -43,7 +43,16 @@ type Service = Tables["services"]["Row"];
 type Request = Tables["contact_submissions"]["Row"];
 type Media = Tables["media"]["Row"];
 type Section =
-  "dashboard" | "works" | "categories" | "services" | "content" | "profile" | "privacy" | "media" | "requests" | "settings";
+  | "dashboard"
+  | "works"
+  | "categories"
+  | "services"
+  | "content"
+  | "profile"
+  | "privacy"
+  | "media"
+  | "requests"
+  | "settings";
 type Editor = {
   kind: "works" | "categories" | "services";
   id?: string | undefined;
@@ -65,7 +74,10 @@ const items = [
 const visibleItems = items
   .filter((x) => ["works", "categories", "profile", "privacy", "settings"].includes(x[0]))
   .map((x) => (x[0] === "works" ? (["works", "Peças", x[2]] as const) : x));
-void LayoutDashboard; void Briefcase; void Image; void Inbox;
+void LayoutDashboard;
+void Briefcase;
+void Image;
+void Inbox;
 export function AdminPanel() {
   const cache = useQueryClient();
   const signFiles = useServerFn(adminFiles);
@@ -86,6 +98,18 @@ export function AdminPanel() {
   const [previewText, setPreviewText] = useState<{ title: string; bio: string } | null>(null);
   const [error, setError] = useState("");
   const [profile, setProfile] = useState({ display_name: "", avatar_url: "" });
+  const [sortBy, setSortBy] = useState<"name" | "published" | "category" | "stock">("name");
+
+  function changeSort(field: "name" | "published" | "category" | "stock") {
+    if (sortBy === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortBy(field);
+      setSortAsc(true);
+    }
+  }
+
+  const [sortAsc, setSortAsc] = useState(true);
   async function refresh() {
     setError("");
     const {
@@ -126,10 +150,12 @@ export function AdminPanel() {
     if (p.data) setProfile(p.data);
     const savedSettings = (config.data?.content ?? {}) as Record<string, string>;
     const logoPath = savedSettings["logo"];
-    const paths = [...new Set([
-      ...(logoPath && !logoPath.startsWith("https://") ? [logoPath] : []),
-      ...(m.data ?? []).map((x) => x.path),
-    ])];
+    const paths = [
+      ...new Set([
+        ...(logoPath && !logoPath.startsWith("https://") ? [logoPath] : []),
+        ...(m.data ?? []).map((x) => x.path),
+      ]),
+    ];
     if (paths.length) {
       const signed = await signFiles({ data: { bucket: "portfolio", paths: paths.slice(0, 100) } });
       setUrls(
@@ -302,15 +328,13 @@ export function AdminPanel() {
   }
   async function duplicate(work: Work) {
     const { id, created_at, ...values } = work;
-    const { error } = await supabase
-      .from("works")
-      .insert({
-        ...values,
-        name: work.name + " (cópia)",
-        slug: work.slug + "-" + crypto.randomUUID().slice(0, 8),
-        published: false,
-        featured: false,
-      });
+    const { error } = await supabase.from("works").insert({
+      ...values,
+      name: work.name + " (cópia)",
+      slug: work.slug + "-" + crypto.randomUUID().slice(0, 8),
+      published: false,
+      featured: false,
+    });
     if (error) toast.error("Não foi possível duplicar.");
     else {
       await changed();
@@ -322,13 +346,20 @@ export function AdminPanel() {
     const t = f.get("welcome_title");
     const b = f.get("bio");
     if (typeof t === "string" || typeof b === "string")
-      setPreviewText({ title: typeof t === "string" ? t : "", bio: typeof b === "string" ? b : "" });
+      setPreviewText({
+        title: typeof t === "string" ? t : "",
+        bio: typeof b === "string" ? b : "",
+      });
   }
   async function saveSettings(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
     const form = new FormData(e.currentTarget);
-    const { data: current, error: readError } = await supabase.from("site_settings").select("content").eq("id", "main").single();
+    const { data: current, error: readError } = await supabase
+      .from("site_settings")
+      .select("content")
+      .eq("id", "main")
+      .single();
     if (readError || !current) {
       toast.error("Não foi possível carregar as configurações. Tenta novamente.");
       setBusy(false);
@@ -429,7 +460,9 @@ export function AdminPanel() {
       {label}
       <select className="field" name={name} defaultValue={current}>
         <option value="">Sem imagem / usar exemplo</option>
-        {current && !media.some((m) => m.path === current) && <option value={current}>Imagem atual</option>}
+        {current && !media.some((m) => m.path === current) && (
+          <option value={current}>Imagem atual</option>
+        )}
         {media.map((m) => (
           <option key={m.id} value={m.path}>
             {m.name}
@@ -536,12 +569,12 @@ export function AdminPanel() {
             <h1>
               {editor
                 ? (editor.id ? "Editar" : "Adicionar") +
-                " " +
-                (editor.kind === "works"
-                  ? "peça"
-                  : editor.kind === "categories"
-                    ? "categoria"
-                    : "serviço")
+                  " " +
+                  (editor.kind === "works"
+                    ? "peça"
+                    : editor.kind === "categories"
+                      ? "categoria"
+                      : "serviço")
                 : visibleItems.find((x) => x[0] === section)?.[1]}
             </h1>
             <p>
@@ -595,12 +628,15 @@ export function AdminPanel() {
                             <option value={c.id}>{c.name} (geral)</option>
                             {subs.map((x) => (
                               <option value={x.id} key={x.id}>
-                                {"\u00a0\u00a0↳ "}{x.name}
+                                {"\u00a0\u00a0↳ "}
+                                {x.name}
                               </option>
                             ))}
                           </optgroup>
                         ) : (
-                          <option value={c.id} key={c.id}>{c.name}</option>
+                          <option value={c.id} key={c.id}>
+                            {c.name}
+                          </option>
                         );
                       })}
                   </select>
@@ -701,20 +737,26 @@ export function AdminPanel() {
                     </select>
                   </label>
                 </div>
-                <div className="full flex flex-wrap gap-6">
-                  {check("published", "Publicado")}
-                </div>
+                <div className="full flex flex-wrap gap-6">{check("published", "Publicado")}</div>
               </>
             ) : (
               <>
                 {editor.kind === "categories" && (
                   <label className="form-group">
                     Onde fica esta categoria?
-                    <select name="parent_id" className="field" defaultValue={String(editor.values["parent_id"] ?? "")}>
+                    <select
+                      name="parent_id"
+                      className="field"
+                      defaultValue={String(editor.values["parent_id"] ?? "")}
+                    >
                       <option value="">É uma categoria principal</option>
-                      {categories.filter((c) => c.id !== editor.id && !c.parent_id).map((c) => (
-                        <option value={c.id} key={c.id}>Subcategoria de: {c.name}</option>
-                      ))}
+                      {categories
+                        .filter((c) => c.id !== editor.id && !c.parent_id)
+                        .map((c) => (
+                          <option value={c.id} key={c.id}>
+                            Subcategoria de: {c.name}
+                          </option>
+                        ))}
                     </select>
                   </label>
                 )}
@@ -736,15 +778,35 @@ export function AdminPanel() {
                           try {
                             for (const file of files) {
                               const path = await upload(file);
-                              const name = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || "Nova peça";
-                              const slug = `${name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Date.now().toString(36)}`;
-                              const r = await supabase.from("works").insert({ name, slug, category_id: editor.id ?? null, images: [path], published: true, position: works.length });
+                              const name =
+                                file.name
+                                  .replace(/\.[^.]+$/, "")
+                                  .replace(/[-_]+/g, " ")
+                                  .trim() || "Nova peça";
+                              const slug = `${name
+                                .toLowerCase()
+                                .normalize("NFD")
+                                .replace(/[\u0300-\u036f]/g, "")
+                                .replace(/[^a-z0-9]+/g, "-")
+                                .replace(/^-|-$/g, "")}-${Date.now().toString(36)}`;
+                              const r = await supabase.from("works").insert({
+                                name,
+                                slug,
+                                category_id: editor.id ?? null,
+                                images: [path],
+                                published: true,
+                                position: works.length,
+                              });
                               if (r.error) throw r.error;
                             }
                             await changed();
-                            toast.success(`${files.length} foto(s) adicionada(s). Podes editar os nomes em Peças.`);
+                            toast.success(
+                              `${files.length} foto(s) adicionada(s). Podes editar os nomes em Peças.`,
+                            );
                           } catch (err) {
-                            toast.error(err instanceof Error ? err.message : "Não foi possível carregar.");
+                            toast.error(
+                              err instanceof Error ? err.message : "Não foi possível carregar.",
+                            );
                           } finally {
                             setBusy(false);
                             input.value = "";
@@ -753,15 +815,17 @@ export function AdminPanel() {
                       />
                     </label>
                     <div className="editor-media">
-                      {works.filter((w) => w.category_id === editor.id).map((w) => {
-                        const src = (w.images as string[])[0] ?? "";
-                        return (
-                          <div key={w.id} className="editor-photo">
-                            <img src={imageUrl(urls[src] || src)} alt={w.name} />
-                            <span className="optional">{w.name}</span>
-                          </div>
-                        );
-                      })}
+                      {works
+                        .filter((w) => w.category_id === editor.id)
+                        .map((w) => {
+                          const src = (w.images as string[])[0] ?? "";
+                          return (
+                            <div key={w.id} className="editor-photo">
+                              <img src={imageUrl(urls[src] || src)} alt={w.name} />
+                              <span className="optional">{w.name}</span>
+                            </div>
+                          );
+                        })}
                     </div>
                   </div>
                 )}
@@ -789,12 +853,15 @@ export function AdminPanel() {
                 {busy ? "A guardar…" : "Guardar alterações"}
               </Button>
               {editor.kind === "works" && editor.values["id"] ? (
-                <Button type="button" variant="outline" onClick={() => remove("works", String(editor.values["id"]))}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => remove("works", String(editor.values["id"]))}
+                >
                   <Trash2 />
                   Eliminar peça
                 </Button>
               ) : null}
-
             </div>
           </form>
         ) : section === "dashboard" ? (
@@ -853,9 +920,7 @@ export function AdminPanel() {
                 </tbody>
               </table>
             </div>
-            <p className="notice mt-8">
-              As peças que cria aqui aparecem logo no catálogo do site.
-            </p>
+            <p className="notice mt-8">As peças que cria aqui aparecem logo no catálogo do site.</p>
           </>
         ) : ["works", "categories", "services"].includes(section) ? (
           <>
@@ -873,9 +938,15 @@ export function AdminPanel() {
                     <th>Nome</th>
                     {section === "works" ? (
                       <>
-                        <th>Estado</th>
-                        <th>Categoria</th>
-                        <th>Stock</th>
+                        <th onClick={() => changeSort("published")} style={{ cursor: "pointer" }}>
+                          Estado {sortBy === "published" && (sortAsc ? "▲" : "▼")}
+                        </th>
+                        <th onClick={() => changeSort("category")} style={{ cursor: "pointer" }}>
+                          Categoria {sortBy === "category" && (sortAsc ? "▲" : "▼")}
+                        </th>
+                        <th onClick={() => changeSort("stock")} style={{ cursor: "pointer" }}>
+                          Stock {sortBy === "stock" && (sortAsc ? "▲" : "▼")}
+                        </th>
                         <th className="text-right">Ações</th>
                       </>
                     ) : (
@@ -889,62 +960,101 @@ export function AdminPanel() {
                 </thead>
                 <tbody>
                   {(section === "works"
-                    ? works
+                    ? [...works]
+                        .filter((row) => row.name.toLowerCase().includes(search.toLowerCase()))
+                        .sort((a, b) => {
+                          switch (sortBy) {
+                            case "name":
+                              return sortAsc
+                                ? a.name.localeCompare(b.name)
+                                : b.name.localeCompare(a.name);
+
+                            case "published":
+                              return sortAsc
+                                ? Number(a.published) - Number(b.published)
+                                : Number(b.published) - Number(a.published);
+
+                            case "category": {
+                              const ca = categories.find((c) => c.id === a.category_id)?.name ?? "";
+                              const cb = categories.find((c) => c.id === b.category_id)?.name ?? "";
+
+                              return sortAsc ? ca.localeCompare(cb) : cb.localeCompare(ca);
+                            }
+
+                            case "stock":
+                              return sortAsc
+                                ? (a.stock ?? 0) - (b.stock ?? 0)
+                                : (b.stock ?? 0) - (a.stock ?? 0);
+
+                            default:
+                              return 0;
+                          }
+                        })
                     : section === "categories"
                       ? categories
-                        .filter((c) => !c.parent_id)
-                        .flatMap((c) => [c, ...categories.filter((x) => x.parent_id === c.id)])
-                      : services)
-                    .filter((row) => row.name.toLowerCase().includes(search.toLowerCase()))
-                    .map((row) => (
-                      <tr
-                        key={row.id}
-                        className={section === "works" ? "admin-row-click" : undefined}
-                        title={section === "works" ? "Clica para editar" : undefined}
-                        onClick={section === "works" ? () => open("works", row) : undefined}
-                      >
-                        <td>
-                          {"parent_id" in row && row.parent_id ? (
-                            <span className="sub-row">↳ {row.name} <small>subcategoria</small></span>
-                          ) : (
-                            <b>{row.name}</b>
-                          )}
-                          {section === "categories" && "parent_id" in row && !row.parent_id && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="ml-3"
-                              onClick={() =>
-                                setEditor({ kind: "categories", values: { parent_id: row.id, visible: true }, images: [] })
-                              }
-                            >
-                              + Subcategoria
-                            </Button>
-                          )}
-                        </td>
-                        <td>
-                          <span
-                            className={`state-badge ${("published" in row ? row.published : row.visible) ? "published" : ""}`}
-                          >
-                            {"published" in row
-                              ? row.published
-                                ? "Publicado"
-                                : "Rascunho"
-                              : row.visible
-                                ? "Visível"
-                                : "Oculto"}
+                          .filter((c) => !c.parent_id)
+                          .flatMap((c) => [c, ...categories.filter((x) => x.parent_id === c.id)])
+                          .filter((row) => row.name.toLowerCase().includes(search.toLowerCase()))
+                      : services.filter((row) =>
+                          row.name.toLowerCase().includes(search.toLowerCase()),
+                        )
+                  ).map((row) => (
+                    <tr
+                      key={row.id}
+                      className={section === "works" ? "admin-row-click" : undefined}
+                      title={section === "works" ? "Clica para editar" : undefined}
+                      onClick={section === "works" ? () => open("works", row) : undefined}
+                    >
+                      <td>
+                        {"parent_id" in row && row.parent_id ? (
+                          <span className="sub-row">
+                            ↳ {row.name} <small>subcategoria</small>
                           </span>
-                        </td>
-                        {section === "works" && "slug" in row ? (
-                          <>
-                            <td>{categories.find((c) => c.id === row.category_id)?.name ?? "—"}</td>
-                            <td>{row.stock == null ? "—" : row.stock > 0 ? row.stock : "Esgotado"}</td>
-                          </>
-                        ) : null}
-                        {section !== "works" && <td>{row.position}</td>}
-                        <td className="table-actions">
-
-                          {section === "works" && (() => {
+                        ) : (
+                          <b>{row.name}</b>
+                        )}
+                        {section === "categories" && "parent_id" in row && !row.parent_id && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="ml-3"
+                            onClick={() =>
+                              setEditor({
+                                kind: "categories",
+                                values: { parent_id: row.id, visible: true },
+                                images: [],
+                              })
+                            }
+                          >
+                            + Subcategoria
+                          </Button>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className={`state-badge ${("published" in row ? row.published : row.visible) ? "published" : ""}`}
+                        >
+                          {"published" in row
+                            ? row.published
+                              ? "Publicado"
+                              : "Rascunho"
+                            : row.visible
+                              ? "Visível"
+                              : "Oculto"}
+                        </span>
+                      </td>
+                      {section === "works" && "slug" in row ? (
+                        <>
+                          <td>{categories.find((c) => c.id === row.category_id)?.name ?? "—"}</td>
+                          <td>
+                            {row.stock == null ? "—" : row.stock > 0 ? row.stock : "Esgotado"}
+                          </td>
+                        </>
+                      ) : null}
+                      {section !== "works" && <td>{row.position}</td>}
+                      <td className="table-actions">
+                        {section === "works" &&
+                          (() => {
                             const work = row as Work;
                             return (
                               <>
@@ -991,47 +1101,60 @@ export function AdminPanel() {
                               </>
                             );
                           })()}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            title="Editar"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              open(section as Editor["kind"], row);
-                            }}
-                          >
-                            <Pencil />
-                          </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Editar"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            open(section as Editor["kind"], row);
+                          }}
+                        >
+                          <Pencil />
+                        </Button>
 
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-red-600"
-                            title="Eliminar"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              remove(section as Editor["kind"], row.id);
-                            }}
-                          >
-                            <Trash2 />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-red-600"
+                          title="Eliminar"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            remove(section as Editor["kind"], row.id);
+                          }}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </>
         ) : section === "profile" || section === "settings" || section === "privacy" ? (
-          <form key={section} className="editor-form" onSubmit={saveSettings} onInput={trackPreview}>
+          <form
+            key={section}
+            className="editor-form"
+            onSubmit={saveSettings}
+            onInput={trackPreview}
+          >
             {section === "privacy" ? (
               <>
                 <label className="form-group full">
                   Texto da página de privacidade
-                  <textarea className="field min-h-96" name="privacy" defaultValue={settings["privacy"] || defaultPrivacyContent} />
+                  <textarea
+                    className="field min-h-96"
+                    name="privacy"
+                    defaultValue={settings["privacy"] || defaultPrivacyContent}
+                  />
                 </label>
                 <div className="full">
-                  <Button asChild variant="outline"><Link to="/privacidade" target="_blank">Ver página de privacidade <ArrowUpRight /></Link></Button>
+                  <Button asChild variant="outline">
+                    <Link to="/privacidade" target="_blank">
+                      Ver página de privacidade <ArrowUpRight />
+                    </Link>
+                  </Button>
                 </div>
               </>
             ) : section === "profile" ? (
@@ -1043,7 +1166,8 @@ export function AdminPanel() {
                 </span>
                 <div className="profile-preview">
                   <div className="profile-preview-avatar">
-                    {settings["logo"] && (urls[settings["logo"]] || settings["logo"].startsWith("https://")) ? (
+                    {settings["logo"] &&
+                    (urls[settings["logo"]] || settings["logo"].startsWith("https://")) ? (
                       <img src={urls[settings["logo"]] || settings["logo"]} alt="Logótipo" />
                     ) : (
                       <span>SDS3D</span>
@@ -1070,7 +1194,15 @@ export function AdminPanel() {
                 <h3 className="settings-heading full">Aspeto do site</h3>
                 <label className="form-group">
                   Efeito de fundo do site
-                  <select className="field" name="sparkles" defaultValue={["off", "snow", "big"].includes(settings["sparkles"] ?? "") ? settings["sparkles"] : "on"}>
+                  <select
+                    className="field"
+                    name="sparkles"
+                    defaultValue={
+                      ["off", "snow", "big"].includes(settings["sparkles"] ?? "")
+                        ? settings["sparkles"]
+                        : "on"
+                    }
+                  >
                     <option value="on">Partículas douradas</option>
                     <option value="big">Partículas douradas maiores</option>
                     <option value="snow">Neve (Natal)</option>
@@ -1264,9 +1396,13 @@ export function AdminPanel() {
                   <thead>
                     <tr>
                       <th>Data</th>
-                      <th>Nome</th>
+                      <th onClick={() => changeSort("name")} style={{ cursor: "pointer" }}>
+                        Nome {sortBy === "name" && (sortAsc ? "▲" : "▼")}
+                      </th>
                       <th>Email</th>
-                      <th>Estado</th>
+                      <th onClick={() => changeSort("published")} style={{ cursor: "pointer" }}>
+                        Estado {sortBy === "published" && (sortAsc ? "▲" : "▼")}
+                      </th>
                       <th />
                     </tr>
                   </thead>
