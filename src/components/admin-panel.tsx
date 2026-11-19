@@ -953,7 +953,9 @@ export function AdminPanel() {
                       </>
                     ) : (
                       <>
-                        <th>Estado</th>
+                        <th onClick={() => changeSort("published")} style={{ cursor: "pointer" }}>
+                          Estado {sortBy === "published" && (sortAsc ? "▲" : "▼")}
+                        </th>
                         <th>Ordem</th>
                         <th className="text-right">Ações</th>
                       </>
@@ -994,9 +996,25 @@ export function AdminPanel() {
                         })
                     : section === "categories"
                       ? categories
-                          .filter((c) => !c.parent_id)
-                          .flatMap((c) => [c, ...categories.filter((x) => x.parent_id === c.id)])
                           .filter((row) => row.name.toLowerCase().includes(search.toLowerCase()))
+                          .sort((a, b) => {
+                            let result = 0;
+
+                            switch (sortBy) {
+                              case "name":
+                                result = a.name.localeCompare(b.name);
+                                break;
+
+                              case "published":
+                                result = Number(a.visible) - Number(b.visible);
+                                break;
+
+                              default:
+                                result = 0;
+                            }
+
+                            return sortAsc ? result : -result;
+                          })
                       : services.filter((row) =>
                           row.name.toLowerCase().includes(search.toLowerCase()),
                         )
