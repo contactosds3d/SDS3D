@@ -612,34 +612,48 @@ export function AdminPanel() {
             {editor.kind === "works" ? (
               <>
                 <label className="form-group">
-                  Categoria
-                  <select
-                    name="category_id"
-                    className="field"
-                    defaultValue={String(editor.values["category_id"] ?? "")}
-                  >
-                    <option value="">Sem categoria</option>
+                  Categorias
+                  <div className="category-list">
                     {categories
                       .filter((c) => !c.parent_id)
                       .map((c) => {
                         const subs = categories.filter((x) => x.parent_id === c.id);
-                        return subs.length ? (
-                          <optgroup label={c.name} key={c.id}>
-                            <option value={c.id}>{c.name} (geral)</option>
-                            {subs.map((x) => (
-                              <option value={x.id} key={x.id}>
-                                {"\u00a0\u00a0↳ "}
-                                {x.name}
-                              </option>
+
+                        return (
+                          <div key={c.id} className="category-group">
+                            <label className="category-item">
+                              <input
+                                type="checkbox"
+                                name="categories"
+                                value={c.id}
+                                defaultChecked={
+                                  Array.isArray(editor.values["categories"]) &&
+                                  (editor.values["categories"] as string[]).includes(c.id)
+                                }
+                              />
+
+                              {c.name}
+                            </label>
+
+                            {subs.map((s) => (
+                              <label key={s.id} className="category-item sub">
+                                <input
+                                  type="checkbox"
+                                  name="categories"
+                                  value={s.id}
+                                  defaultChecked={
+                                    Array.isArray(editor.values["categories"]) &&
+                                    (editor.values["categories"] as string[]).includes(s.id)
+                                  }
+                                />
+
+                                {s.name}
+                              </label>
                             ))}
-                          </optgroup>
-                        ) : (
-                          <option value={c.id} key={c.id}>
-                            {c.name}
-                          </option>
+                          </div>
                         );
                       })}
-                  </select>
+                  </div>
                 </label>
                 {input("position", "Ordem", "number")}
                 {input("price", "Preço (€)", "text")}

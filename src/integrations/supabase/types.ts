@@ -52,6 +52,37 @@ export type Database = {
           },
         ]
       }
+      work_categories: {
+        Row: {
+          work_id: string
+          category_id: string
+        }
+
+        Insert: {
+          work_id: string
+          category_id: string
+        }
+
+        Update: {
+          work_id?: string
+          category_id?: string
+        }
+
+        Relationships: [
+          {
+            foreignKeyName: "work_categories_work_id_fkey"
+            columns: ["work_id"]
+            referencedRelation: "works"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_categories_category_id_fkey"
+            columns: ["category_id"]
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       contact_limits: {
         Row: {
           key: string
