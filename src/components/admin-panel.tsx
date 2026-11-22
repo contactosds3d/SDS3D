@@ -128,7 +128,15 @@ export function AdminPanel() {
       return;
     }
     const [w, c, s, r, m, config, p] = await Promise.all([
-      supabase.from("works").select("*").order("position"),
+      supabase
+        .from("works")
+        .select(
+          `
+    *,
+    work_categories(category_id)
+  `,
+        )
+        .order("position"),
       supabase.from("categories").select("*").order("position"),
       supabase.from("services").select("*").order("position"),
       supabase.from("contact_submissions").select("*").order("created_at", { ascending: false }),
@@ -140,7 +148,12 @@ export function AdminPanel() {
       setError("Não foi possível carregar os dados.");
       return;
     }
-    setWorks(w.data ?? []);
+    setWorks(
+      (w.data ?? []).map((x: any) => ({
+        ...x,
+        categories: x.work_categories?.map((c: any) => c.category_id) ?? [],
+      })),
+    );
     setCategories(c.data ?? []);
     setServices(s.data ?? []);
     setRequests(r.data ?? []);
@@ -178,6 +191,9 @@ export function AdminPanel() {
       Object.entries(row).forEach(([k, v]) => {
         if (typeof v === "string" || typeof v === "boolean" || typeof v === "number") values[k] = v;
       });
+    if (kind === "works" && row && "categories" in row) {
+      values["categories"] = JSON.stringify((row as any)["categories"] ?? []);
+    }
     setEditor({
       kind,
       id: row?.id,
@@ -247,6 +263,7 @@ export function AdminPanel() {
     if (!editor) return;
     setBusy(true);
     const f = new FormData(e.currentTarget);
+    const categories = f.getAll("categories") as string[];
     const text = (key: string) => String(f.get(key) || "");
     try {
       const position = Number(f.get("position") || 0);
@@ -269,7 +286,6 @@ export function AdminPanel() {
           name,
           slug,
           description: text("description"),
-          category_id: text("category_id") || null,
           images: editor.images,
           published: f.get("published") === "on",
           material: text("material"),
@@ -278,8 +294,8 @@ export function AdminPanel() {
           position,
         };
         result = editor.id
-          ? await supabase.from("works").update(values).eq("id", editor.id)
-          : await supabase.from("works").insert(values);
+          ? await supabase.from("works").update(values).eq("id", editor.id).select().single()
+          : await supabase.from("works").insert(values).select().single();
       } else if (editor.kind === "categories") {
         const values = {
           name: text("name"),
@@ -307,6 +323,26 @@ export function AdminPanel() {
           : await supabase.from("services").insert(values);
       }
       if (result.error) throw result.error;
+      if (editor.kind === "works") {
+        const workId = editor.id ?? result.data?.id;
+
+        if (!workId) {
+          throw new Error("Não foi possível obter o ID da peça.");
+        }
+
+        await supabase.from("work_categories").delete().eq("work_id", workId);
+
+        if (categories.length) {
+          const { error } = await supabase.from("work_categories").insert(
+            categories.map((category_id) => ({
+              work_id: workId,
+              category_id,
+            })),
+          );
+
+          if (error) throw error;
+        }
+      }
       setEditor(null);
       await changed();
       toast.success("Alterações guardadas.");
@@ -618,7 +654,10 @@ export function AdminPanel() {
                       .filter((c) => !c.parent_id)
                       .map((c) => {
                         const subs = categories.filter((x) => x.parent_id === c.id);
-
+                        const selectedCategories =
+                          editor?.kind === "works"
+                            ? (JSON.parse(String(editor.values["categories"] ?? "[]")) as string[])
+                            : [];
                         return (
                           <div key={c.id} className="category-group">
                             <label className="category-item">
@@ -626,10 +665,7 @@ export function AdminPanel() {
                                 type="checkbox"
                                 name="categories"
                                 value={c.id}
-                                defaultChecked={
-                                  Array.isArray(editor.values["categories"]) &&
-                                  (editor.values["categories"] as string[]).includes(c.id)
-                                }
+                                defaultChecked={selectedCategories.includes(c.id)}
                               />
 
                               {c.name}
@@ -641,10 +677,7 @@ export function AdminPanel() {
                                   type="checkbox"
                                   name="categories"
                                   value={s.id}
-                                  defaultChecked={
-                                    Array.isArray(editor.values["categories"]) &&
-                                    (editor.values["categories"] as string[]).includes(s.id)
-                                  }
+                                  defaultChecked={selectedCategories.includes(s.id)}
                                 />
 
                                 {s.name}
