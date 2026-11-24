@@ -148,6 +148,8 @@ export function AdminPanel() {
       setError("Não foi possível carregar os dados.");
       return;
     }
+    console.log("DADOS DO SUPABASE:", w.data);
+
     setWorks(
       (w.data ?? []).map((x: any) => ({
         ...x,
@@ -186,13 +188,17 @@ export function AdminPanel() {
     await cache.invalidateQueries({ queryKey: ["public-site"] });
   }
   function open(kind: Editor["kind"], row?: Work | Category | Service) {
+
     const values: Record<string, string | boolean | number> = {};
     if (row)
       Object.entries(row).forEach(([k, v]) => {
         if (typeof v === "string" || typeof v === "boolean" || typeof v === "number") values[k] = v;
       });
-    if (kind === "works" && row && "categories" in row) {
-      values["categories"] = JSON.stringify((row as any)["categories"] ?? []);
+    if (kind === "works") {
+      console.log("WORK:", row);
+      console.log("CATEGORIES:", (row as any).categories);
+
+      values["categories"] = JSON.stringify((row as any).categories ?? []);
     }
     setEditor({
       kind,
@@ -1112,7 +1118,10 @@ export function AdminPanel() {
                       </td>
                       {section === "works" && "slug" in row ? (
                         <>
-                          <td>{categories.find((c) => c.id === row.category_id)?.name ?? "—"}</td>
+                          {categories
+                            .filter((c) => (row.categories ?? []).includes(c.id))
+                            .map((c) => c.name)
+                            .join(", ") || "-"}{" "}
                           <td>
                             {row.stock == null ? "—" : row.stock > 0 ? row.stock : "Esgotado"}
                           </td>
