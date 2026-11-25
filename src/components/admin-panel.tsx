@@ -188,7 +188,6 @@ export function AdminPanel() {
     await cache.invalidateQueries({ queryKey: ["public-site"] });
   }
   function open(kind: Editor["kind"], row?: Work | Category | Service) {
-
     const values: Record<string, string | boolean | number> = {};
     if (row)
       Object.entries(row).forEach(([k, v]) => {
@@ -1118,10 +1117,13 @@ export function AdminPanel() {
                       </td>
                       {section === "works" && "slug" in row ? (
                         <>
-                          {categories
-                            .filter((c) => (row.categories ?? []).includes(c.id))
-                            .map((c) => c.name)
-                            .join(", ") || "-"}{" "}
+                          <td>
+                            {categories
+                              .filter((c) => (row.categories ?? []).includes(c.id))
+                              .map((c) => c.name)
+                              .join(", ") || "-"}
+                          </td>
+
                           <td>
                             {row.stock == null ? "—" : row.stock > 0 ? row.stock : "Esgotado"}
                           </td>
