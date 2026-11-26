@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, dehydrate, hydrate } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
@@ -9,6 +9,11 @@ export const getRouter = () => {
   const router = createRouter({
     routeTree,
     context: { queryClient },
+    // Keep the query data used by SSR available during the browser's first
+    // render. Without this, useSuspenseQuery can fetch a second snapshot while
+    // React is hydrating HTML rendered from the first snapshot.
+    dehydrate: () => dehydrate(queryClient),
+    hydrate: (state) => hydrate(queryClient, state),
     scrollRestoration: true,
     // Lets Query own freshness; set caching defaults on the QueryClient, not the router.
     defaultPreloadStaleTime: 0,

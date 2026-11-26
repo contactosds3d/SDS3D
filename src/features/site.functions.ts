@@ -60,9 +60,11 @@ export const getPublicSite = createServerFn({ method: "GET" }).handler(async () 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   async function resolve(path: string) {
-    if (!path || path.startsWith("example:") || path.startsWith("https://")) return path;
+    if (!path || path.startsWith("example:") || /^https?:\/\//i.test(path)) return path;
 
-    const { data } = await supabaseAdmin.storage.from("portfolio").createSignedUrl(path, 3600);
+    // Public page data can remain mounted for longer than an hour; keep its
+    // private-storage image URLs usable for a full day before they expire.
+    const { data } = await supabaseAdmin.storage.from("portfolio").createSignedUrl(path, 86400);
 
     return data?.signedUrl ?? "";
   }

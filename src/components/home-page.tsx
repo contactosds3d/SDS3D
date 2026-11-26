@@ -75,8 +75,10 @@ export function HomePage() {
     }
   }, [data.works]);
   const tile = (c: (typeof cats)[number]) => {
-    const first = worksIn(c.id)[0];
-    const img = c.image ? imageUrl(c.image) : first ? imageUrl(first.images[0]) : "";
+    // A category cover must come from the category's own image field. Work
+    // photos are shown after entering the category and must not be promoted
+    // into its cover automatically.
+    const img = c.image ? imageUrl(c.image) : "";
     return (
       <button key={c.id} className="ig-cat-tile" onClick={() => setCategory(c.id)}>
         <span className="ig-cat-img">{img && <img src={img} alt="" loading="lazy" />}</span>
