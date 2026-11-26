@@ -59,15 +59,53 @@ export const getPublicSite = createServerFn({ method: "GET" }).handler(async () 
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  async function resolve(path: string) {
-    if (!path || path.startsWith("example:") || /^https?:\/\//i.test(path)) return path;
+  const isStoragePath = (path: string | null | undefined): path is string =>
+    typeof path === "string" &&
+    path.length > 0 &&
+    !path.startsWith("example:") &&
+    !/^https?:\/\//i.test(path);
+  const storagePaths = [
+    ...(works.data ?? []).flatMap((work) =>
+      Array.isArray(work.images)
+        ? work.images.filter(
+            (path): path is string => typeof path === "string" && isStoragePath(path),
+          )
+        : [],
+    ),
+    ...(categories.data ?? []).map((category) => category.image).filter(isStoragePath),
+    ...(services.data ?? []).map((service) => service.image).filter(isStoragePath),
+    ...["hero_image", "hero_video", "about_image", "logo"]
+      .map((key) => config[key])
+      .filter(isStoragePath),
+  ];
+  const signedImageUrls = new Map<string, string>();
 
-    // Public page data can remain mounted for longer than an hour; keep its
-    // private-storage image URLs usable for a full day before they expire.
-    const { data } = await supabaseAdmin.storage.from("portfolio").createSignedUrl(path, 86400);
-
-    return data?.signedUrl ?? "";
+  // Batch signing avoids issuing a burst of one request per image, which can
+  // leave a random subset without a URL when the storage API is under load.
+  for (let offset = 0; offset < storagePaths.length; offset += 100) {
+    const paths = [...new Set(storagePaths.slice(offset, offset + 100))];
+    if (!paths.length) continue;
+    const { data, error } = await supabaseAdmin.storage
+      .from("portfolio")
+      .createSignedUrls(paths, 86400);
+    if (error) {
+      console.error("Não foi possível assinar URLs de imagens do portfólio", error);
+      continue;
+    }
+    for (const item of data ?? []) {
+      if (item.path && item.signedUrl) {
+        signedImageUrls.set(item.path, item.signedUrl);
+      } else {
+        console.error("Não foi possível assinar uma imagem do portfólio", {
+          path: item.path,
+          error: item.error,
+        });
+      }
+    }
   }
+
+  const resolve = (path: string) =>
+    isStoragePath(path) ? (signedImageUrls.get(path) ?? "") : path;
 
   const resolvedWorks = await Promise.all(
     (works.data ?? []).map(async ({ work_categories: relations, ...w }) => ({
@@ -86,20 +124,20 @@ export const getPublicSite = createServerFn({ method: "GET" }).handler(async () 
   const resolvedServices = await Promise.all(
     (services.data ?? []).map(async (s) => ({
       ...s,
-      image: await resolve(s.image),
+      image: resolve(s.image),
     })),
   );
 
   const resolvedCategories = await Promise.all(
     (categories.data ?? []).map(async (c) => ({
       ...c,
-      image: await resolve(c.image),
+      image: resolve(c.image),
     })),
   );
 
   for (const key of ["hero_image", "hero_video", "about_image", "logo"]) {
     if (config[key]) {
-      config[key] = await resolve(config[key]);
+      config[key] = resolve(config[key]);
     }
   }
 

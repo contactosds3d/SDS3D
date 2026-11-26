@@ -12,8 +12,10 @@ export const getRouter = () => {
     // Keep the query data used by SSR available during the browser's first
     // render. Without this, useSuspenseQuery can fetch a second snapshot while
     // React is hydrating HTML rendered from the first snapshot.
-    dehydrate: () => dehydrate(queryClient),
-    hydrate: (state) => hydrate(queryClient, state),
+    // Router's serializability validator cannot infer React Query's runtime
+    // serialization of query keys and cached data, so narrow at this boundary.
+    dehydrate: () => dehydrate(queryClient) as never,
+    hydrate: (state) => hydrate(queryClient, state as never),
     scrollRestoration: true,
     // Lets Query own freshness; set caching defaults on the QueryClient, not the router.
     defaultPreloadStaleTime: 0,
