@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 type Tables = Database["public"]["Tables"];
-type Work = Tables["works"]["Row"] & { categories: string[] };
+type Work = Omit<Tables["works"]["Row"], "category_id"> & { categories: string[] };
 type Category = Tables["categories"]["Row"];
 type Service = Tables["services"]["Row"];
 type Request = Tables["contact_submissions"]["Row"];
@@ -131,10 +131,7 @@ export function AdminPanel() {
       supabase
         .from("works")
         .select(
-          `
-    *,
-    work_categories(category_id)
-  `,
+          "id, created_at, description, example, featured, images, material, name, position, price, published, seo_description, seo_title, slug, specifications, stock, video, work_categories(category_id)",
         )
         .order("position"),
       supabase.from("categories").select("*").order("position"),
