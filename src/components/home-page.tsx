@@ -45,21 +45,10 @@ export function HomePage() {
       const u = new URL(window.location.href);
       if (slug) u.searchParams.set("peca", slug);
       else u.searchParams.delete("peca");
-      history.replaceState(history.state, "", u);
+      history.replaceState({}, "", u);
     } catch {
       void 0;
     }
-  };
-  const navigateCategory = (nextCategory: string) => {
-    if (nextCategory === category) return;
-    // Categories are shown in place, but still need browser history entries so
-    // Back and the iOS edge-swipe return through the browsing path.
-    history.pushState(
-      { ...(history.state ?? {}), homeCategory: nextCategory },
-      "",
-      window.location.href,
-    );
-    setCategory(nextCategory);
   };
   const openWork = (w: Work) => {
     setOpen(w);
@@ -73,18 +62,6 @@ export function HomePage() {
   useEffect(() => {
     setBase(window.location.origin + window.location.pathname);
   }, []);
-  useEffect(() => {
-    const restoreFromHistory = () => {
-      const state = history.state as { homeCategory?: string } | null;
-      setCategory(state?.homeCategory ?? "");
-      const slug = new URLSearchParams(window.location.search).get("peca");
-      const work = slug ? data.works.find((item) => item.slug === slug) : undefined;
-      setOpen(work ?? null);
-      setIdx(0);
-    };
-    window.addEventListener("popstate", restoreFromHistory);
-    return () => window.removeEventListener("popstate", restoreFromHistory);
-  }, [data.works]);
   useEffect(() => {
     const slug = new URLSearchParams(window.location.search).get("peca");
     if (!slug) return;
@@ -101,7 +78,7 @@ export function HomePage() {
     const first = worksIn(c.id)[0];
     const img = c.image ? imageUrl(c.image) : first ? imageUrl(first.images[0]) : "";
     return (
-      <button key={c.id} className="ig-cat-tile" onClick={() => navigateCategory(c.id)}>
+      <button key={c.id} className="ig-cat-tile" onClick={() => setCategory(c.id)}>
         <span className="ig-cat-img">{img && <img src={img} alt="" loading="lazy" />}</span>
         <b>{c.name}</b>
         <small>{worksIn(c.id).length} peças</small>
@@ -141,7 +118,7 @@ export function HomePage() {
         </header>
         {current && (
           <div className="ig-back">
-            <button onClick={() => navigateCategory(current.parent_id ?? "")}>
+            <button onClick={() => setCategory(current.parent_id ?? "")}>
               <ArrowLeft size={18} /> Voltar
             </button>
             <h2>{current.name}</h2>
