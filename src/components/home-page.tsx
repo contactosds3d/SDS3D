@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronLeft, ChevronRight, Copy, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -14,6 +14,7 @@ export function HomePage() {
   const [open, setOpen] = useState<Work | null>(null);
   const [idx, setIdx] = useState(0);
   const [base, setBase] = useState("");
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const cats = data.categories as ((typeof data.categories)[number] & {
     parent_id?: string | null;
   })[];
@@ -50,6 +51,17 @@ export function HomePage() {
       void 0;
     }
   };
+  const navigateCategory = (id: string) => {
+    setCategory(id);
+    try {
+      const url = new URL(window.location.href);
+      if (id) url.searchParams.set("categoria", id);
+      else url.searchParams.delete("categoria");
+      window.history.pushState({ category: id }, "", url);
+    } catch {
+      // Category navigation still works if the URL cannot be updated.
+    }
+  };
   const openWork = (w: Work) => {
     setOpen(w);
     setIdx(0);
@@ -62,6 +74,15 @@ export function HomePage() {
   useEffect(() => {
     setBase(window.location.origin + window.location.pathname);
   }, []);
+  useEffect(() => {
+    const applyCategoryFromUrl = () => {
+      const id = new URLSearchParams(window.location.search).get("categoria") ?? "";
+      setCategory(cats.some((c) => c.id === id) ? id : "");
+    };
+    applyCategoryFromUrl();
+    window.addEventListener("popstate", applyCategoryFromUrl);
+    return () => window.removeEventListener("popstate", applyCategoryFromUrl);
+  }, [data.categories]);
   useEffect(() => {
     const slug = new URLSearchParams(window.location.search).get("peca");
     if (!slug) return;
@@ -80,7 +101,7 @@ export function HomePage() {
     // into its cover automatically.
     const img = c.image ? imageUrl(c.image) : "";
     return (
-      <button key={c.id} className="ig-cat-tile" onClick={() => setCategory(c.id)}>
+      <button key={c.id} className="ig-cat-tile" onClick={() => navigateCategory(c.id)}>
         <span className="ig-cat-img">{img && <img src={img} alt="" loading="lazy" />}</span>
         <b>{c.name}</b>
         <small>{worksIn(c.id).length} peças</small>
@@ -89,7 +110,24 @@ export function HomePage() {
   };
   return (
     <SiteLayout>
-      <div className="ig">
+      <div
+        className="ig"
+        onTouchStart={(event) => {
+          const touch = event.touches[0];
+          if (touch) touchStart.current = { x: touch.clientX, y: touch.clientY };
+        }}
+        onTouchEnd={(event) => {
+          const start = touchStart.current;
+          const touch = event.changedTouches[0];
+          touchStart.current = null;
+          if (!start || !touch) return;
+          const dx = touch.clientX - start.x;
+          const dy = touch.clientY - start.y;
+          if (dx > 70 && Math.abs(dx) > Math.abs(dy) * 1.3 && category) {
+            navigateCategory(current?.parent_id ?? "");
+          }
+        }}
+      >
         <header className="ig-profile">
           <div className="ig-avatar">
             <Logo />
@@ -120,7 +158,7 @@ export function HomePage() {
         </header>
         {current && (
           <div className="ig-back">
-            <button onClick={() => setCategory(current.parent_id ?? "")}>
+            <button onClick={() => navigateCategory(current.parent_id ?? "")}>
               <ArrowLeft size={18} /> Voltar
             </button>
             <h2>{current.name}</h2>
