@@ -1,5 +1,5 @@
 import hero from '@/assets/studio-hero.jpg';
-import spiral from '@/assets/spiral.jpg';
+import spiral from '@/assets/spiral.png';
 import turbine from '@/assets/turbine.jpg';
 import architecture from '@/assets/architecture.jpg';
 export const exampleImages: Record<string,string> = {'example:spiral':spiral,'example:turbine':turbine,'example:architecture':architecture};
