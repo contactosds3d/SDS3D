@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 type Tables = Database["public"]["Tables"];
-type Work = Tables["works"]["Row"];
+type Work = Tables["works"]["Row"] & { categories: string[] };
 type Category = Tables["categories"]["Row"];
 type Service = Tables["services"]["Row"];
 type Request = Tables["contact_submissions"]["Row"];
@@ -148,12 +148,10 @@ export function AdminPanel() {
       setError("Não foi possível carregar os dados.");
       return;
     }
-    console.log("DADOS DO SUPABASE:", w.data);
-
     setWorks(
-      (w.data ?? []).map((x: any) => ({
-        ...x,
-        categories: x.work_categories?.map((c: any) => c.category_id) ?? [],
+      (w.data ?? []).map(({ work_categories: relations, ...work }) => ({
+        ...work,
+        categories: relations.map((relation) => relation.category_id),
       })),
     );
     setCategories(c.data ?? []);
@@ -194,10 +192,7 @@ export function AdminPanel() {
         if (typeof v === "string" || typeof v === "boolean" || typeof v === "number") values[k] = v;
       });
     if (kind === "works") {
-      console.log("WORK:", row);
-      console.log("CATEGORIES:", (row as any).categories);
-
-      values["categories"] = JSON.stringify((row as any).categories ?? []);
+      values["categories"] = JSON.stringify(row && "categories" in row ? row.categories : []);
     }
     setEditor({
       kind,
@@ -268,7 +263,7 @@ export function AdminPanel() {
     if (!editor) return;
     setBusy(true);
     const f = new FormData(e.currentTarget);
-    const categories = f.getAll("categories") as string[];
+    const categories = [...new Set(f.getAll("categories").filter((value): value is string => typeof value === "string"))];
     const text = (key: string) => String(f.get(key) || "");
     try {
       const position = Number(f.get("position") || 0);
@@ -335,7 +330,8 @@ export function AdminPanel() {
           throw new Error("Não foi possível obter o ID da peça.");
         }
 
-        await supabase.from("work_categories").delete().eq("work_id", workId);
+        const { error: deleteError } = await supabase.from("work_categories").delete().eq("work_id", workId);
+        if (deleteError) throw deleteError;
 
         if (categories.length) {
           const { error } = await supabase.from("work_categories").insert(
@@ -368,16 +364,26 @@ export function AdminPanel() {
     }
   }
   async function duplicate(work: Work) {
-    const { id, created_at, ...values } = work;
-    const { error } = await supabase.from("works").insert({
+    const { id, created_at, categories: selectedCategories, ...values } = work;
+    const { data: duplicated, error } = await supabase.from("works").insert({
       ...values,
       name: work.name + " (cópia)",
       slug: work.slug + "-" + crypto.randomUUID().slice(0, 8),
       published: false,
       featured: false,
-    });
+    }).select("id").single();
     if (error) toast.error("Não foi possível duplicar.");
     else {
+      if (selectedCategories.length) {
+        const { error: relationError } = await supabase.from("work_categories").insert(
+          selectedCategories.map((category_id) => ({ work_id: duplicated.id, category_id })),
+        );
+        if (relationError) {
+          await supabase.from("works").delete().eq("id", duplicated.id);
+          toast.error("NÃ£o foi possÃ­vel duplicar as categorias.");
+          return;
+        }
+      }
       await changed();
       toast.success("Cópia guardada como rascunho.");
     }
@@ -844,12 +850,15 @@ export function AdminPanel() {
                               const r = await supabase.from("works").insert({
                                 name,
                                 slug,
-                                category_id: editor.id ?? null,
                                 images: [path],
                                 published: true,
                                 position: works.length,
-                              });
-                              if (r.error) throw r.error;
+                              }).select("id").single();
+                              if (r.error || !r.data) throw r.error ?? new Error("Não foi possível criar a peça.");
+                              if (editor.id) {
+                                const { error: relationError } = await supabase.from("work_categories").insert({ work_id: r.data.id, category_id: editor.id });
+                                if (relationError) throw relationError;
+                              }
                             }
                             await changed();
                             toast.success(
@@ -868,7 +877,7 @@ export function AdminPanel() {
                     </label>
                     <div className="editor-media">
                       {works
-                        .filter((w) => w.category_id === editor.id)
+                        .filter((w) => w.categories.includes(editor.id ?? ""))
                         .map((w) => {
                           const src = (w.images as string[])[0] ?? "";
                           return (
@@ -1031,8 +1040,8 @@ export function AdminPanel() {
                                 : Number(b.published) - Number(a.published);
 
                             case "category": {
-                              const ca = categories.find((c) => c.id === a.category_id)?.name ?? "";
-                              const cb = categories.find((c) => c.id === b.category_id)?.name ?? "";
+                              const ca = a.categories.map((id) => categories.find((c) => c.id === id)?.name ?? "").join(", ");
+                              const cb = b.categories.map((id) => categories.find((c) => c.id === id)?.name ?? "").join(", ");
 
                               return sortAsc ? ca.localeCompare(cb) : cb.localeCompare(ca);
                             }

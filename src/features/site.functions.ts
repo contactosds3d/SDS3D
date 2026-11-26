@@ -33,21 +33,19 @@ export const getPublicSite = createServerFn({ method: "GET" }).handler(async () 
     },
   });
 
-  const [works, categories, workCategories, services, settings] = await Promise.all([
-    client.from("works").select("*").order("position"),
+  const [works, categories, services, settings] = await Promise.all([
+    client.from("works").select("*, work_categories(category_id)").order("position"),
     client.from("categories").select("*").order("position"),
-    client.from("work_categories").select("*"),
     client.from("services").select("*").order("position"),
     client.from("site_settings").select("content").eq("id", "main").single(),
   ]);
 
-  if (works.error || categories.error || workCategories.error || services.error || settings.error) {
+  if (works.error || categories.error || services.error || settings.error) {
     throw new Error(
       JSON.stringify(
         {
           works: works.error,
           categories: categories.error,
-          workCategories: workCategories.error,
           services: services.error,
           settings: settings.error,
         },
@@ -70,11 +68,9 @@ export const getPublicSite = createServerFn({ method: "GET" }).handler(async () 
   }
 
   const resolvedWorks = await Promise.all(
-    (works.data ?? []).map(async (w) => ({
+    (works.data ?? []).map(async ({ work_categories: relations, ...w }) => ({
       ...w,
-
-      categories:
-        workCategories.data?.filter((x) => x.work_id === w.id).map((x) => x.category_id) ?? [],
+      categories: relations.map((relation) => relation.category_id),
 
       images: await Promise.all(
         (Array.isArray(w.images)

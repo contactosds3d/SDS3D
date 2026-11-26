@@ -13,7 +13,7 @@ import { loadEnv } from "vite";
 const modeOptionIndex = process.argv.indexOf("--mode");
 const mode =
   modeOptionIndex >= 0
-    ? process.argv[modeOptionIndex + 1]
+    ? (process.argv[modeOptionIndex + 1] ?? "development")
     : process.argv.includes("build")
       ? "production"
       : "development";
@@ -28,9 +28,9 @@ for (const [key, value] of Object.entries(env)) {
 export default defineConfig({
   vite: {
     define: {
-      "process.env.SUPABASE_URL": JSON.stringify(process.env.SUPABASE_URL),
+      "process.env.SUPABASE_URL": JSON.stringify(process.env["SUPABASE_URL"]),
       "process.env.SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
-        process.env.SUPABASE_PUBLISHABLE_KEY,
+        process.env["SUPABASE_PUBLISHABLE_KEY"],
       ),
     },
   },
