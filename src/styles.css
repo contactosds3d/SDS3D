@@ -2686,6 +2686,11 @@ body {
   align-items: center;
   gap: 8px;
   color: var(--foreground);
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  transition: border-color .2s, background-color .2s;
 }
 
 .ig-cat-img {
@@ -2693,8 +2698,7 @@ body {
   height: 150px;
   border-radius: 50%;
   overflow: hidden;
-  padding: 3px;
-  background: linear-gradient(135deg, var(--logo-gold), var(--logo-orange));
+  background: transparent;
   transition: transform .2s;
 }
 
@@ -2703,11 +2707,15 @@ body {
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
-  border: 3px solid var(--logo-black);
 }
 
 .ig-cat-tile:hover .ig-cat-img {
   transform: scale(1.05);
+}
+
+.ig-cat-tile:hover {
+  border-color: var(--muted-foreground);
+  background: color-mix(in oklch, var(--foreground) 4%, transparent);
 }
 
 .ig-cat-tile small {
@@ -2724,7 +2732,6 @@ body {
     grid-template-columns: repeat(2, 1fr);
     gap: 20px
   }
-
   .ig-cat-img {
     width: 120px;
     height: 120px
